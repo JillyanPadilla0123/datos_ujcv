@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Plataforma Estadística UJCV</title>
+    <!-- CDN de Chart.js y Plugin de Porcentajes -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <!-- FontAwesome para Iconos Formales -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #030712;
+            --box-dark: #0f172a; 
+            --primary-blue: #0084da;
+            --accent-cyan: #00b4d8;         
+            --text-white: #f9fafb;
+            --text-muted: #9ca3af;
+            
+            /* Variables dinámicas para el cambio de la tabla */
+            --table-bg: #0f172a;
+            --table-th: #1e3a8a;
+            --table-border: #0084da;
+            --table-text: #f3f4f6;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg-dark); color: var(--text-white); overflow-x: hidden; height: 100vh; width: 100vw; }
+
+        /* PORTADA */
+        .cover-page {
+            min-height: 100vh;
+            display: flex; justify-content: center; align-items: center;
+            background: linear-gradient(135deg, rgba(3, 7, 18, 0.98) 0%, rgba(15, 23, 42, 0.95) 100%), 
+                        url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1920&q=80') no-repeat center center;
+            background-size: cover; text-align: center; padding: 20px;
+        }
+        .cover-card {
+            background: rgba(15, 23, 42, 0.95);
+            padding: 55px 45px; border-radius: 24px;
+            border: 2px solid rgba(0, 132, 218, 0.3); max-width: 650px; width: 100%; display: flex; flex-direction: column;
+            align-items: center; box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+        }
+        
+        .cover-university { font-size: 2rem; font-weight: 800; color: #ffffff; margin-bottom: 12px; letter-spacing: -0.5px; line-height: 1.2; }
+        .cover-class { font-size: 1.2rem; color: var(--accent-cyan); margin-bottom: 40px; font-weight: 600; letter-spacing: 0.5px; line-height: 1.4; }
+        
+        .btn-enter {
+            background: linear-gradient(90deg, #0084da 0%, #00b4d8 100%);
+            color: white; padding: 15px 35px; font-size: 0.95rem; font-weight: 700; border: none; border-radius: 12px;
+            cursor: pointer; transition: all 0.3s ease;
+            display: inline-flex; align-items: center; gap: 12px; box-shadow: 0 4px 15px rgba(0, 132, 218, 0.4);
+        }
+        .btn-enter:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(0, 180, 216, 0.4); }
+
+        /* HEADER */
+        #main-dashboard { height: 100vh; display: flex; flex-direction: column; background: var(--bg-dark); }
+        header { 
+            background: rgba(15, 23, 42, 0.95); padding: 15px 20px; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px;
+            border-bottom: 2px solid rgba(0, 132, 218, 0.3); text-align: center; flex-shrink: 0;
+        }
+        header h1 { font-size: 1.15rem; font-weight: 800; color: white; display: flex; align-items: center; gap: 10px; letter-spacing: 0.5px; }
+        .badge-sample { background: rgba(0, 132, 218, 0.2); color: #38bdf8; padding: 4px 16px; border-radius: 50px; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.5px; border: 1px solid rgba(0, 132, 218, 0.3); }
+
+        .full-screen-view { flex: 1; display: flex; align-items: center; justify-content: center; padding: 20px; position: relative; overflow-y: auto; }
+        .view { display: none; width: 100%; height: 100%; }
+        .view.active { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+
+        .grid-centered-wrapper { display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; }
+        .grid-2x2-container {
+            display: grid; grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(2, 1fr); gap: 20px;
+            width: 100%; max-width: 950px; height: 66vh; max-height: 460px; margin-top: 15px;
+        }
+
+        /* TARJETAS DE TEMAS */
+        .matrix-theme-card {
+            border-radius: 16px; padding: 25px; display: flex; flex-direction: column; justify-content: flex-end;
+            cursor: pointer; border: 2px solid rgba(0, 132, 218, 0.25); position: relative; overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); background: #0f172a; box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        }
+        .matrix-theme-card-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background-size: cover !important; background-position: center !important; z-index: 1;
+        }
+        .matrix-theme-card::after {
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to top, rgba(3, 7, 18, 0.98) 40%, rgba(3, 7, 18, 0.45) 100%); z-index: 2;
+        }
+        .matrix-theme-card:hover { transform: translateY(-4px); border-color: var(--accent-cyan); box-shadow: 0 12px 24px rgba(0, 180, 216, 0.3); }
+
+        .card-content-overlay { position: relative; z-index: 3; }
+        .card-content-overlay h3 { font-size: 0.85rem; font-weight: 800; color: var(--accent-cyan); margin-bottom: 5px; letter-spacing: 1px; }
+        .card-content-overlay p { font-size: 0.95rem; font-weight: 700; color: #ffffff; line-height: 1.4; }
+
+        /* PORTADA DE TÓPICOS */
+        .formal-topic-card {
+            background: var(--box-dark); border-radius: 16px; padding: 25px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center; cursor: pointer;
+            border: 2px solid rgba(0, 132, 218, 0.2); transition: all 0.3s ease; box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        .formal-topic-card i { font-size: 2.2rem; color: #38bdf8; margin-bottom: 15px; transition: all 0.3s ease; }
+        .formal-topic-card h4 { font-size: 0.8rem; font-weight: 800; color: var(--accent-cyan); margin-bottom: 6px; letter-spacing: 0.5px; }
+        .formal-topic-card p { font-size: 0.85rem; font-weight: 600; color: #e2e8f0; line-height: 1.4; padding: 0 5px; }
+        .formal-topic-card:hover { background: #1e293b; border-color: #38bdf8; transform: translateY(-4px); box-shadow: 0 12px 24px rgba(56, 189, 248, 0.2); }
+        .formal-topic-card:hover i { color: #ffffff; transform: scale(1.05); }
+
+        /* CUADRO ÚNICO INTEGRADO */
+        .single-box-layout {
+            display: grid; grid-template-columns: 46% 54%; background: var(--box-dark);
+            border-radius: 16px; border: 2px solid rgba(0, 132, 218, 0.25); height: 82vh; width: 100%; max-width: 1280px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+        }
+        .btn-back {
+            background-color: transparent; color: white; border: 1px solid var(--primary-blue);
+            padding: 8px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.8rem; display: inline-flex;
+            align-items: center; gap: 8px; transition: all 0.2s;
+        }
+        .btn-back:hover { background: var(--primary-blue); }
+
+        /* SECCIONES INTERNAS */
+        .left-panel-control { padding: 15px 20px; border-right: 2px solid rgba(0, 132, 218, 0.15); display: flex; flex-direction: column; background: var(--box-dark); min-height: 0; }
+        .right-panel-questions { padding: 15px 20px; display: grid; grid-template-rows: repeat(2, 1fr); gap: 12px; background: var(--box-dark); min-height: 0; }
+
+        .block-title { font-size: 0.8rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 10px; border-left: 4px solid var(--primary-blue); padding-left: 10px; text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0; }
+
+        /* CONTENEDORES INTERACTIVOS */
+        .interactive-selectors { display: flex; justify-content: center; gap: 20px; margin-bottom: 10px; flex-shrink: 0; }
+        .selector-icon-btn { display: flex; flex-direction: column; align-items: center; cursor: pointer; color: var(--text-muted); font-size: 0.75rem; font-weight: 700; transition: all 0.2s; text-align: center; }
+        .selector-icon-btn i { font-size: 1.1rem; color: #38bdf8; background: rgba(56, 189, 248, 0.05); padding: 8px; border-radius: 12px; margin-bottom: 4px; border: 1px solid rgba(56, 189, 248, 0.15); transition: all 0.2s; }
+        .selector-icon-btn:hover i, .selector-icon-btn.active i { color: white; background: #0084da; border-color: #00b4d8; }
+        .selector-icon-btn.active { color: white; }
+
+        /* ESPACIO DE TABLAS */
+        .dropdown-table-space { 
+            border-radius: 10px; padding: 6px; margin-bottom: 10px; 
+            background: var(--table-bg); border: 2px solid var(--table-border); 
+            transition: all 0.4s ease; flex-shrink: 0; overflow-x: auto;
+        }
+        table { width: 100%; border-collapse: collapse; font-size: 0.6rem; }
+        th, td { padding: 4px 6px; text-align: left; }
+        th { background: var(--table-th); color: #ffffff; font-weight: 700; border-bottom: 2px solid var(--table-border); text-transform: uppercase; font-size: 0.55rem; }
+        tbody tr td { border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--table-text); }
+        tbody tr.total-row td { background-color: rgba(255, 255, 255, 0.08); font-weight: 700; border-top: 2px solid var(--table-border); color: #ffffff; }
+        .text-right { text-align: right; }
+        
+        /* ESTILO INTERACTIVO PARA FILAS DE LA TABLA */
+        tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
+        tbody tr:not(.total-row):hover { background-color: rgba(0, 132, 218, 0.15); }
+
+        /* FILA FIJA INFERIOR PARA PREGUNTA 1 */
+        .bottom-chart-inline-box { display: flex; flex-direction: column; flex: 1; border-top: 1px dashed rgba(0, 132, 218, 0.25); padding-top: 8px; min-height: 120px; }
+
+        /* CARTAS LADO DERECHO */
+        .question-card-row { display: flex; flex-direction: row; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border-radius: 14px; padding: 12px 15px; border: 1px solid rgba(0, 132, 218, 0.15); height: 100%; min-height: 140px; }
+        .question-label-text { font-size: 0.72rem; font-weight: 700; color: #ffffff; width: 42%; line-height: 1.3; border-left: 3px solid var(--accent-cyan); padding-left: 10px; }
+        .chart-container-wrapper { width: 58%; height: 100%; position: relative; min-height: 0; }
+        
+        /* ESTILO ABSOLUTO PARA CANVAS */
+        canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; }
+
+        /* REGLAS RESPONSIVE PARA DISPOSITIVOS MÓVILES */
+        @media (max-width: 768px) {
+            body, #main-dashboard { height: auto; min-height: 100vh; overflow-y: auto; }
+            .full-screen-view { height: auto; overflow-y: visible; padding: 12px; }
+            
+            /* Ajustes de Portada */
+            .cover-card { padding: 35px 20px; }
+            .cover-university { font-size: 1.5rem; }
+            .cover-class { font-size: 1rem; margin-bottom: 25px; }
+
+            /* Grid de Temas y Tópicos pasa a 1 columna */
+            .grid-2x2-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                height: auto;
+                max-height: none;
+                gap: 15px;
+            }
+            .matrix-theme-card { height: 140px; padding: 15px; }
+            .formal-topic-card { padding: 20px; }
+
+            /* El contenedor analítico se vuelve vertical */
+            .single-box-layout {
+                grid-template-columns: 1fr;
+                height: auto;
+                overflow: visible;
+            }
+            .left-panel-control {
+                border-right: none;
+                border-bottom: 2px solid rgba(0, 132, 218, 0.15);
+            }
+            .right-panel-questions {
+                grid-template-rows: auto;
+                gap: 15px;
+            }
+            .question-card-row {
+                flex-direction: column;
+                align-items: flex-start;
+                height: auto;
+                gap: 12px;
+                padding: 15px;
+            }
+            .question-label-text { width: 100%; border-left: 3px solid var(--accent-cyan); padding-left: 8px; margin-bottom: 5px; }
+            .chart-container-wrapper { width: 100%; height: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- PORTADA -->
+<div id="view-cover" class="cover-page">
+    <div class="cover-card">
+        <h1 class="cover-university">Universidad José Cecilio del Valle</h1>
+        <h2 class="cover-class">Clase: Inmersión Digital<br>Análisis de Datos</h2>
+        
+        <button class="btn-enter" onclick="switchView('view-main-menu')">
+            Ingresar al Dashboard Analítico <i class="fa-solid fa-arrow-right"></i>
+        </button>
+    </div>
+</div>
+
+<!-- PANEL DEL DASHBOARD -->
+<div id="main-dashboard" style="display: none;">
+    <header>
+        <h1><i class="fa-solid fa-chart-pie" style="color: var(--accent-cyan);"></i> PLATAFORMA ESTADÍSTICA UJCV</h1>
+        <div class="badge-sample">N = 1,004 Sujetos Hondureños</div>
+    </header>
+
+    <div class="full-screen-view">
+        
+        <!-- PANTALLA: MENÚ PRINCIPAL DE EJES TEMÁTICOS -->
+        <div id="view-main-menu" class="view">
+            <div class="grid-centered-wrapper">
+                <h2 style="font-size: 1rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #0084da; padding-bottom: 4px;">Ejes Temáticos de Estudio</h2>
+                <div class="grid-2x2-container">
+                    <div class="matrix-theme-card" onclick="openTopicsMenu(1)">
+                        <div class="matrix-theme-card-bg" style="background: url('https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?auto=format&fit=crop&w=500&q=80');"></div>
+                        <div class="card-content-overlay">
+                            <h3>TEMA 1</h3>
+                            <p>HÁBITOS Y DEPENDENCIA DIGITAL (CELULAR)</p>
+                        </div>
+                    </div>
+                    <div class="matrix-theme-card" onclick="openTopicsMenu(2)">
+                        <div class="matrix-theme-card-bg" style="background: url('https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=500&q=80');"></div>
+                        <div class="card-content-overlay">
+                            <h3>TEMA 2</h3>
+                            <p>PERCEPCIÓN Y COMPORTAMIENTO FRENTE AL MUNDIAL 2026</p>
+                        </div>
+                    </div>
+                    <div class="matrix-theme-card" onclick="openTopicsMenu(3)">
+                        <div class="matrix-theme-card-bg" style="background: url('https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=500&q=80');"></div>
+                        <div class="card-content-overlay">
+                            <h3>TEMA 3</h3>
+                            <p>CATORCEAVO: COMPORTAMIENTO FINANCIERO</p>
+                        </div>
+                    </div>
+                    <div class="matrix-theme-card" onclick="openTopicsMenu(4)">
+                        <div class="matrix-theme-card-bg" style="background: url('https://images.unsplash.com/photo-1434030216411-0b793f4b4173?auto=format&fit=crop&w=500&q=80');"></div>
+                        <div class="card-content-overlay">
+                            <h3>TEMA 4</h3>
+                            <p>VIDA Y PERCEPCIÓN DEL ESTUDIANTE HONDUREÑO</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PANTALLA: MENÚ DE TÓPICOS -->
+        <div id="view-topics-menu" class="view">
+            <div class="grid-centered-wrapper">
+                <div style="width: 100%; max-width: 950px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 10px;">
+                    <button class="btn-back" onclick="switchView('view-main-menu')"><i class="fa-solid fa-chevron-left"></i> Volver a Temas</button>
+                    <h2 id="lbl-selected-theme-title" style="font-size: 0.9rem; color: var(--accent-cyan); font-weight: 800; text-transform: uppercase; text-align: right;"></h2>
+                </div>
+                <div class="grid-2x2-container" id="container-topics-grid-box"></div>
+            </div>
+        </div>
+
+        <!-- PANTALLA: CENTRO ANALÍTICO -->
+        <div id="view-dashboard-analytics" class="view" style="width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; width: 100%; max-width: 1280px; gap: 10px;">
+                <button class="btn-back" id="btn-back-to-topics"><i class="fa-solid fa-chevron-left"></i> Volver a Tópicos</button>
+                <span id="txt-header-topico-title" style="color: var(--accent-cyan); font-weight: 800; font-size: 0.8rem; text-transform: uppercase; text-align: right;"></span>
+            </div>
+
+            <div class="single-box-layout">
+                <!-- PANEL DE CONTROL IZQUIERDO -->
+                <div class="left-panel-control">
+                    <div class="block-title" id="lbl-active-topico-header">Métricas Segmentadas</div>
+                    
+                    <div class="interactive-selectors" id="box-selectors-target"></div>
+                    <div class="dropdown-table-space" id="box-table-dropdown-container"></div>
+
+                    <!-- PREGUNTA 1 -->
+                    <div class="bottom-chart-inline-box">
+                        <div class="block-title" id="lbl-q1-statement" style="color: white; border: none; padding-left: 0; font-size: 0.7rem; margin-bottom: 5px; line-height:1.2;"></div>
+                        <div style="flex: 1; position: relative; min-height: 120px;">
+                            <canvas id="canvas-fixed-bar-q1"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PANEL DE PREGUNTAS DERECHO -->
+                <div class="right-panel-questions">
+                    <!-- PREGUNTA 2 -->
+                    <div class="question-card-row">
+                        <div class="question-label-text" id="lbl-q2-statement"></div>
+                        <div class="chart-container-wrapper">
+                            <canvas id="canvas-fixed-pie-q2"></canvas>
+                        </div>
+                    </div>
+                    <!-- PREGUNTA 3 -->
+                    <div class="question-card-row">
+                        <div class="question-label-text" id="lbl-q3-statement"></div>
+                        <div class="chart-container-wrapper">
+                            <canvas id="canvas-fixed-line-q3"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    Chart.register(ChartDataLabels);
+    let activeCharts = {};
+    let globalSelectedTheme = 0;
+    let currentTopicData = null;
+    let currentSelectedSegmentId = "";
+    let currentActiveStyles = {};
+
+    const topicIcons = {
+        1: { 1: "fa-solid fa-users-viewfinder", 2: "fa-solid fa-arrow-down-up-lock", 3: "fa-solid fa-network-wired", 4: "fa-solid fa-user-check" },
+        2: { 1: "fa-solid fa-venus-mars", 2: "fa-solid fa-flag-usa", 3: "fa-solid fa-tv", 4: "fa-solid fa-scale-balanced" },
+        3: { 1: "fa-solid fa-house-laptop", 2: "fa-solid fa-piggy-bank", 3: "fa-solid fa-file-invoice-dollar", 4: "fa-solid fa-basket-shopping" },
+        4: { 1: "fa-solid fa-graduation-cap", 2: "fa-solid fa-mobile-screen", 3: "fa-solid fa-door-open", 4: "fa-solid fa-chart-line" }
+    };
+
+    const segmentDefinitions = {
+        gender: [
+            { id: "masc", label: "Muestra Masculina", icon: "fa-solid fa-user-tie", themeStyle: { bg: "#0b1e3a", th: "#1e3a8a", border: "#0084da", text: "#f3f4f6" } },
+            { id: "fem", label: "Muestra Femenina", icon: "fa-solid fa-user-graduate", themeStyle: { bg: "#062f3a", th: "#0891b2", border: "#00b4d8", text: "#ecfeff" } }
+        ],
+        age3: [
+            { id: "age1835", label: "Rango 18 a 35 Años", icon: "fa-solid fa-calendar-day", themeStyle: { bg: "#0b1e3a", th: "#1e3a8a", border: "#0084da", text: "#f3f4f6" } },
+            { id: "age3654", label: "Rango 36 a 54 Años", icon: "fa-solid fa-business-time", themeStyle: { bg: "#062f3a", th: "#0891b2", border: "#00b4d8", text: "#ecfeff" } },
+            { id: "age5565", label: "Rango 55 a 65 Años", icon: "fa-solid fa-id-card", themeStyle: { bg: "#022c22", th: "#059669", border: "#10b981", text: "#f0fdf4" } }
+        ],
+        age2: [
+            { id: "young", label: "Población Joven", icon: "fa-solid fa-users", themeStyle: { bg: "#0b1e3a", th: "#1e3a8a", border: "#0084da", text: "#f3f4f6" } },
+            { id: "adult", label: "Población Profesional", icon: "fa-solid fa-user-gear", themeStyle: { bg: "#1e1b4b", th: "#4338ca", border: "#6366f1", text: "#e0e7ff" } }
+        ]
+    };
+
+    const databaseMaster = {
+        1: {
+            themeTitle: "TEMA 1 — HÁBITOS Y DEPENDENCIA DIGITAL (CELULAR)",
+            topics: {
+                1: { title: "Tópico 1.1: Prevalencia del uso masivo de pantallas según el género", seg: "gender", tables: { masc: `<table><thead><tr><th>Rangos Evaluados</th><th class="text-right">Muestra M.</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Menos de 2 horas diarias</td><td class="text-right">40</td><td class="text-right">78</td></tr><tr onclick="filterChartsByTableRow(1)"><td>De 2 a 4 horas diarias</td><td class="text-right">140</td><td class="text-right">314</td></tr><tr onclick="filterChartsByTableRow(2)"><td>De 4 a 6 horas diarias</td><td class="text-right">130</td><td class="text-right">348</td></tr><tr onclick="filterChartsByTableRow(3)"><td>Más de 6 horas diarias</td><td class="text-right">92</td><td class="text-right">264</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">402</td><td class="text-right">1004</td></tr></tbody></table>`, fem: `<table><thead><tr><th>Rangos Evaluados</th><th class="text-right">Muestra F.</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Menos de 2 horas diarias</td><td class="text-right">38</td><td class="text-right">78</td></tr><tr onclick="filterChartsByTableRow(1)"><td>De 2 a 4 horas diarias</td><td class="text-right">174</td><td class="text-right">314</td></tr><tr onclick="filterChartsByTableRow(2)"><td>De 4 a 6 horas diarias</td><td class="text-right">218</td><td class="text-right">348</td></tr><tr onclick="filterChartsByTableRow(3)"><td>Más de 6 horas diarias</td><td class="text-right">172</td><td class="text-right">264</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">602</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Qué porcentaje de la muestra representa a los usuarios que pasan más de 4 horas diarias expuestos a la pantalla de su celular?", type: "bar", labels: ["Menos de 2 horas", "De 2 a 4 horas", "De 4 a 6 horas", "Más de 6 horas"], data: { masc: [40, 140, 130, 92], fem: [38, 174, 218, 172] }, colors: ["#1e3a8a", "#0284c7", "#06b6d4", "#4f46e5"] }, { q: "¿Existen diferencias significativas entre hombres y mujeres respecto a quiénes registran un comportamiento de uso extremo (más de 6 horas al día)?", type: "pie", labels: ["Menos de 2 horas", "De 2 a 4 horas", "De 4 a 6 horas", "Más de 6 horas"], data: { masc: [40, 140, 130, 92], fem: [38, 174, 218, 172] }, colors: ["#1e3a8a", "#0284c7", "#06b6d4", "#4f46e5"] }, { q: "¿Cuál es la distribución general de la población hondureña analizada según los cuatro rangos de tiempo estimados de uso celular por género?", type: "line", labels: ["<2h", "2-4h", "4-6h", ">6h"], data: { masc: [40, 140, 130, 92], fem: [38, 174, 218, 172] }, colors: ["#0284c7"] } ] },
+                2: { title: "Tópico 1.2: Relación inversa entre la edad y la ansiedad por desconexión", seg: "age3", tables: { age1835: `<table><thead><tr><th>Frecuencia Sintomatología</th><th class="text-right">18-35 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Muchas Veces</td><td class="text-right">210</td><td class="text-right">320</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Algunas Veces</td><td class="text-right">180</td><td class="text-right">410</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Nunca / Rara Vez</td><td class="text-right">60</td><td class="text-right">274</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">450</td><td class="text-right">1004</td></tr></tbody></table>`, age3654: `<table><thead><tr><th>Frecuencia Sintomatología</th><th class="text-right">36-54 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Muchas Veces</td><td class="text-right">90</td><td class="text-right">320</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Algunas Veces</td><td class="text-right">190</td><td class="text-right">410</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Nunca / Rara Vez</td><td class="text-right">100</td><td class="text-right">274</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">380</td><td class="text-right">1004</td></tr></tbody></table>`, age5565: `<table><thead><tr><th>Frecuencia Sintomatología</th><th class="text-right">55-65 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Muchas Veces</td><td class="text-right">20</td><td class="text-right">320</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Algunas Veces</td><td class="text-right">40</td><td class="text-right">410</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Nunca / Rara Vez</td><td class="text-right">114</td><td class="text-right">274</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">174</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¶¿De qué manera influye la edad en la autopercepción de síntomas de ansiedad cuando las personas no tienen su celular cerca?", type: "bar", labels: ["Muchas Veces", "Algunas Veces", "Nunca / Rara Vez"], data: { age1835: [210, 180, 60], age3654: [90, 190, 100], age5565: [20, 40, 114] }, colors: ["#0f172a", "#3b82f6", "#10b981"] }, { q: "I¿Qué rangos de edad jóvenes (18 a 35 años) son los más vulnerables a experimentar niveles de ansiedad \"algunas\" o \"muchas veces\"?", type: "pie", labels: ["Muchas Veces", "Algunas Veces", "Nunca / Rara Vez"], data: { age1835: [210, 180, 60], age3654: [90, 190, 100], age5565: [20, 40, 114] }, colors: ["#1d4ed8", "#2563eb", "#64748b"] }, { q: "¿Cómo se comporta la option de respuesta \"Nunca\" o \"Rara vez\" ante la ansiedad digital en el segmento de adultos mayores (55 a 65 años) frente a los jóvenes?", type: "line", labels: ["Muchas Veces", "Algunas Veces", "Nunca / Rara Vez"], data: { age1835: [210, 180, 60], age3654: [90, 190, 100], age5565: [20, 40, 114] }, colors: ["#10b981"] } ] },
+                3: { title: "Tópico 1.3: Patrones de revisión compulsiva en el ecosistema social", seg: "gender", tables: { masc: `<table><thead><tr><th>Índice de Frecuencia</th><th class="text-right">Hombres</th><th class="text-right">Total</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Alta Intensidad</td><td class="text-right">220</td><td class="text-right">580</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Moderada Recurrencia</td><td class="text-right">112</td><td class="text-right">294</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Baja Verificación</td><td class="text-right">70</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">402</td><td class="text-right">1004</td></tr></tbody></table>`, fem: `<table><thead><tr><th>Índice de Frecuencia</th><th class="text-right">Mujeres</th><th class="text-right">Total</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Alta Intensidad</td><td class="text-right">360</td><td class="text-right">580</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Moderada Recurrencia</td><td class="text-right">182</td><td class="text-right">294</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Baja Verificación</td><td class="text-right">60</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">602</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Con qué frecuencia promedio los encuestados revisan las notificaciones de su celular sin un motivo justificado a lo largo del día?", type: "bar", labels: ["Alta Intensidad", "Moderada Recurrencia", "Baja Verificación"], data: { masc: [220, 112, 70], fem: [360, 182, 60] }, colors: ["#1e3a8a", "#00b4d8", "#312e81"] }, { q: "¿Qué porcentaje de personas interrumpe sus comidas o interacciones sociales cotidianas debido al impulso de verificar el celular?", type: "pie", labels: ["Alta Intensidad", "Moderada Recurrencia", "Baja Verificación"], data: { masc: [220, 112, 70], fem: [360, 182, 60] }, colors: ["#1e3a8a", "#00b4d8", "#475569"] }, { q: "¶Varía la intensidad del patrón de revisión del dispositivo móvil entre las distintas jornadas del día (mañana, tarde o noche)?", type: "line", labels: ["Alta Intensidad", "Moderada Recurrencia", "Baja Verificación"], data: { masc: [220, 112, 70], fem: [360, 182, 60] }, colors: ["#00b4d8"] } ] },
+                4: { title: "Tópico 1.4: Niveles de autopercepción de adicción tecnológica", seg: "age2", tables: { young: `<table><thead><tr><th>Autopercepción Dependencia</th><th class="text-right">Pob. Joven</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Altamente Dependiente</td><td class="text-right">310</td><td class="text-right">520</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Uso Controlado Inteligente</td><td class="text-right">210</td><td class="text-right">354</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Totalmente Independiente</td><td class="text-right">60</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">580</td><td class="text-right">1004</td></tr></tbody></table>`, adult: `<table><thead><tr><th>Autopercepción Dependencia</th><th class="text-right">Pob. Prof.</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Altamente Dependiente</td><td class="text-right">210</td><td class="text-right">520</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Uso Controlado Inteligente</td><td class="text-right">144</td><td class="text-right">354</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Totalmente Independiente</td><td class="text-right">70</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">424</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Cuántos de los participantes de la muestra admiten abiertamente considerarse dependientes de la tecnología del celular?", type: "bar", labels: ["Altamente Dependiente", "Uso Controlado Inteligente", "Totalmente Independiente"], data: { young: [310, 210, 60], adult: [210, 144, 70] }, colors: ["#1e3a8a", "#4338ca", "#581c87"] }, { q: "¿Qué consequences cotidianas (pérdida de sueño, procrastination) asocian más los usuarios con el exceso de pantallas?", type: "pie", labels: ["Altamente Dependiente", "Uso Controlado Inteligente", "Totalmente Independiente"], data: { young: [310, 210, 60], adult: [210, 144, 70] }, colors: ["#1e3a8a", "#4338ca", "#64748b"] }, { q: "¿Existe un reconocimiento consciente de la necesidad de reducir las horas de pantalla en la rutina diaria de la muestra?", type: "line", labels: ["Altamente Dependiente", "Uso Controlado Inteligente", "Totalmente Independiente"], data: { young: [310, 210, 60], adult: [210, 144, 70] }, colors: ["#4338ca"] } ] }
+            }
+        },
+        2: {
+            themeTitle: "TEMA 2 — PERCEPCIÓN Y COMPORTAMIENTO FRENTE AL MUNDIAL 2026",
+            topics: {
+                1: { title: "Tópico 2.1: Brecha de género en la carga emocional hacia el fútbol", seg: "gender", tables: { masc: `<table><thead><tr><th>Reacción Emocional</th><th class="text-right">Hombres</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Entusiasmo Desbordado</td><td class="text-right">290</td><td class="text-right">410</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Expectativa Moderada</td><td class="text-right">82</td><td class="text-right">374</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Indiferencia / Desinterés</td><td class="text-right">30</td><td class="text-right">220</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">402</td><td class="text-right">1004</td></tr></tbody></table>`, fem: `<table><thead><tr><th>Reacción Emocional</th><th class="text-right">Mujeres</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Entusiasmo Desbordado</td><td class="text-right">120</td><td class="text-right">410</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Expectativa Moderada</td><td class="text-right">292</td><td class="text-right">374</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Indiferencia / Desinterés</td><td class="text-right">190</td><td class="text-right">220</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">602</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Cuál es la reacción emocional mayoritaria entre los hombres al momento de dar inicio la competencia de la FIFA?", type: "bar", labels: ["Entusiasmo Desbordado", "Expectativa Moderada", "Indiferencia / Desinterés"], data: { masc: [290, 82, 30], fem: [120, 292, 190] }, colors: ["#1e3a8a", "#00b4d8", "#312e81"] }, { q: "¿De qué forma difiere el nivel de entusiasmo de las mujeres respecto al masculino, y qué categorías de respuesta concentran su atención?", type: "pie", labels: ["Entusiasmo Desbordado", "Expectativa Moderada", "Indiferencia / Desinterés"], data: { masc: [290, 82, 30], fem: [120, 292, 190] }, colors: ["#1e3a8a", "#00b4d8", "#475569"] }, { q: "¿Qué proporción de la muestra general muestra un desinterés o indiferencia total hacia el desarrollo de este evento deportivo?", type: "line", labels: ["Entusiasmo Desbordado", "Expectativa Moderada", "Indiferencia / Desinterés"], data: { masc: [290, 82, 30], fem: [120, 292, 190] }, colors: ["#00b4d8"] } ] },
+                2: { title: "Tópico 2.2: Identidad nacional y arraigo cultural ligado al torneo", seg: "age3", tables: { age1835: `<table><thead><tr><th>Percepción de Cohesión</th><th class="text-right">18-35 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Fortalece Fuertemente</td><td class="text-right">210</td><td class="text-right">510</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Impacto Efímero / Pasajero</td><td class="text-right">180</td><td class="text-right">364</td></tr><tr onclick="filterChartsByTableRow(2)"><td>No influye en Identidad</td><td class="text-right">60</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">450</td><td class="text-right">1004</td></tr></tbody></table>`, age3654: `<table><thead><tr><th>Percepción de Cohesión</th><th class="text-right">36-54 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Fortalece Fuertemente</td><td class="text-right">200</td><td class="text-right">510</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Impacto Efímero / Pasajero</td><td class="text-right">130</td><td class="text-right">364</td></tr><tr onclick="filterChartsByTableRow(2)"><td>No influye en Identidad</td><td class="text-right">50</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">380</td><td class="text-right">1004</td></tr></tbody></table>`, age5565: `<table><thead><tr><th>Percepción de Cohesión</th><th class="text-right">55-65 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Fortalece Fuertemente</td><td class="text-right">100</td><td class="text-right">510</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Impacto Efímero / Pasajero</td><td class="text-right">54</td><td class="text-right">364</td></tr><tr onclick="filterChartsByTableRow(2)"><td>No influye en Identidad</td><td class="text-right">20</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">174</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿En qué medida el Mundial de fútbol se percibe como un element que fortalece la cohesión social o la identidad dentro del país?", type: "bar", labels: ["Fortalece Fuertemente", "Impacto Efímero / Pasajero", "No influye en Identidad"], data: { age1835: [210, 180, 60], age3654: [200, 130, 50], age5565: [100, 54, 20] }, colors: ["#0284c7", "#475569", "#10b981"] }, { q: "¿Cómo influyen las pasiones deportivas en el estado de ánimo colectivo de la población durante las fechas del torneo?", type: "pie", labels: ["Fortalece Fuertemente", "Impacto Efímero / Pasajero", "No influye en Identidad"], data: { age1835: [210, 180, 60], age3654: [200, 130, 50], age5565: [100, 54, 20] }, colors: ["#1e3a8a", "#0284c7", "#10b981"] }, { q: "¿Se asocia el consumo del torneo con un sentimiento de representación u orgullo por la región centroamericana?", type: "line", labels: ["Fortalece Fuertemente", "Impacto Efímero / Pasajero", "No influye en Identidad"], data: { age1835: [210, 180, 60], age3654: [200, 130, 50], age5565: [100, 54, 20] }, colors: ["#0284c7"] } ] },
+                3: { title: "Tópico 2.3: Canales y hábitos de consumo de medios para el torneo", seg: "age2", tables: { young: `<table><thead><tr><th>Medios de Elección</th><th class="text-right">Pob. Joven</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Streaming Online Digital</td><td class="text-right">350</td><td class="text-right">480</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Televisión Abierta / Cable</td><td class="text-right">150</td><td class="text-right">394</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Resúmenes en Redes</td><td class="text-right">80</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">580</td><td class="text-right">1004</td></tr></tbody></table>`, adult: `<table><thead><tr><th>Medios de Elección</th><th class="text-right">Pob. Prof.</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Streaming Online Digital</td><td class="text-right">130</td><td class="text-right">480</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Televisión Abierta / Cable</td><td class="text-right">244</td><td class="text-right">394</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Resúmenes en Redes</td><td class="text-right">50</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">424</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Cuáles son los canales o medios preferidos (televisión abierta, cable o plataformas digitales de streaming) para seguir las transmisiones?", type: "bar", labels: ["Streaming Online Digital", "Televisión Abierta / Cable", "Resúmenes en Redes"], data: { young: [350, 150, 80], adult: [130, 244, 50] }, colors: ["#1e3a8a", "#4338ca", "#581c87"] }, { q: "¿Prefiere la población consumir los contenidos de los partidos de forma individual o en entornos de reunión familiar y social?", type: "pie", labels: ["Streaming Online Digital", "Televisión Abierta / Cable", "Resúmenes en Redes"], data: { young: [350, 150, 80], adult: [130, 244, 50] }, colors: ["#00b4d8", "#4338ca", "#64748b"] }, { q: "¿Qué rol juegan las redes sociales en el consumo complementario de noticias, resúmenes y debates sobre el torneo?", type: "line", labels: ["Streaming Online Digital", "Televisión Abierta / Cable", "Resúmenes en Redes"], data: { young: [350, 150, 80], adult: [130, 244, 50] }, colors: ["#00b4d8"] } ] },
+                4: { title: "Tópico 2.4: Opinión pública sobre la legitimidad del formato multisede de la FIFA", seg: "gender", tables: { masc: `<table><thead><tr><th>Evaluación Modelo</th><th class="text-right">Hombres</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Aceptación Plena Comercial</td><td class="text-right">190</td><td class="text-right">340</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Escepticismo Logístico</td><td class="text-right">152</td><td class="text-right">424</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Rechazo por Descentralización</td><td class="text-right">60</td><td class="text-right">240</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">402</td><td class="text-right">1004</td></tr></tbody></table>`, fem: `<table><thead><tr><th>Evaluación Modelo</th><th class="text-right">Mujeres</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Aceptación Plena Comercial</td><td class="text-right">150</td><td class="text-right">340</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Escepticismo Logístico</td><td class="text-right">272</td><td class="text-right">424</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Rechazo por Descentralización</td><td class="text-right">180</td><td class="text-right">240</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">602</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Qué nivel de aceptación tiene entre los hondureños la decisión de realizar un formato de torneo compartido entre tres países sede?", type: "bar", labels: ["Aceptación Plena Comercial", "Escepticismo Logístico", "Rechazo por Descentralización"], data: { masc: [190, 152, 60], fem: [150, 272, 180] }, colors: ["#1e3a8a", "#00b4d8", "#312e81"] }, { q: "¿Considera la muestra que la descentralización de las sedes afecta positivamente o negativamente la organización y la esencia de la competencia?", type: "pie", labels: ["Aceptación Plena Comercial", "Escepticismo Logístico", "Rechazo por Descentralización"], data: { masc: [190, 152, 60], fem: [150, 272, 180] }, colors: ["#1e3a8a", "#00b4d8", "#475569"] }, { q: "¿Qué percepciones existen sobre los costos logísticos y los beneficios comerciales de este nuevo modelo multisede de la FIFA?", type: "line", labels: ["Aceptación Plena Comercial", "Escepticismo Logístico", "Rechazo por Descentralización"], data: { masc: [190, 152, 60], fem: [150, 272, 180] }, colors: ["#00b4d8"] } ] }
+            }
+        },
+        3: {
+            themeTitle: "TEMA 3 — CATORCEAVO: COMPORTAMIENTO FINANCIERO",
+            topics: {
+                1: { title: "Tópico 3.1: Efimeridad de la liquidez en la adultez media por cargas del hogar", seg: "age3", tables: { age1835: `<table><thead><tr><th>Velocidad del Gasto</th><th class="text-right">18-35 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Menos de una semana (Dilución)</td><td class="text-right">240</td><td class="text-right">610</td></tr><tr onclick="filterChartsByTableRow(1)"><td>De 1 a 3 semanas activas</td><td class="text-right">140</td><td class="text-right">264</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Extensión más de un mes</td><td class="text-right">70</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">450</td><td class="text-right">1004</td></tr></tbody></table>`, age3654: `<table><thead><tr><th>Velocidad del Gasto</th><th class="text-right">36-54 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Menos de una semana (Dilución)</td><td class="text-right">290</td><td class="text-right">610</td></tr><tr onclick="filterChartsByTableRow(1)"><td>De 1 a 3 semanas activas</td><td class="text-right">70</td><td class="text-right">264</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Extensión más de un mes</td><td class="text-right">20</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">380</td><td class="text-right">1004</td></tr></tbody></table>`, age5565: `<table><thead><tr><th>Velocidad del Gasto</th><th class="text-right">55-65 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Menos de una semana (Dilución)</td><td class="text-right">80</td><td class="text-right">610</td></tr><tr onclick="filterChartsByTableRow(1)"><td>De 1 a 3 semanas activas</td><td class="text-right">54</td><td class="text-right">264</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Extensión más de un mes</td><td class="text-right">40</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">174</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Por qué el rango de edad de 36 a 54 años registra la mayor velocidad de dilución y gasto total de este beneficio monetario en la economía local?", type: "bar", labels: ["Menos de una semana (Dilución)", "De 1 a 3 semanas activas", "Extensión más de un mes"], data: { age1835: [240, 140, 70], age3654: [290, 70, 20], age5565: [80, 54, 40] }, colors: ["#0284c7", "#475569", "#10b981"] }, { q: "¶¿Qué porcentaje de la muestra total (independientemente de su edad) gasta la mayor parte del catorceavo mes en un plazo menor a una semana?", type: "pie", labels: ["Menos de una semana (Dilución)", "De 1 a 3 semanas activas", "Extensión más de un mes"], data: { age1835: [240, 140, 70], age3654: [290, 70, 20], age5565: [80, 54, 40] }, colors: ["#1e3a8a", "#0284c7", "#10b981"] }, { q: "I¿De qué manera se correlaciona el gasto acelerado de este dinero con las etapas de mayores cargas familiares y compromisos escolares adquiridos en esos hogares?", type: "line", labels: ["Menos de una semana (Dilución)", "De 1 a 3 semanas activas", "Extensión más de un mes"], data: { age1835: [240, 140, 70], age3654: [290, 70, 20], age5565: [80, 54, 40] }, colors: ["#0284c7"] } ] },
+                2: { title: "Tópico 3.2: Capacidad de ahorro y conservación del beneficio laboral", seg: "gender", tables: { masc: `<table><thead><tr><th>Organización Conservación</th><th class="text-right">Hombres</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Conserva por Plan de Ahorro</td><td class="text-right">60</td><td class="text-right">150</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Incapacidad por Entorno Caro</td><td class="text-right">290</td><td class="text-right">714</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Extensión Real Multi-Mes</td><td class="text-right">52</td><td class="text-right">140</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">402</td><td class="text-right">1004</td></tr></tbody></table>`, fem: `<table><thead><tr><th>Organización Conservación</th><th class="text-right">Mujeres</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Conserva por Plan de Ahorro</td><td class="text-right">90</td><td class="text-right">150</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Incapacidad por Entorno Caro</td><td class="text-right">424</td><td class="text-right">714</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Extensión Real Multi-Mes</td><td class="text-right">88</td><td class="text-right">140</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">602</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Qué grupos de edad manifiestan una mayor intención u organización para conservar una parte de este ingreso a mediano plazo?", type: "bar", labels: ["Conserva por Plan de Ahorro", "Incapacidad por Entorno Caro", "Extensión Real Multi-Mes"], data: { masc: [60, 290, 52], fem: [90, 424, 88] }, colors: ["#1e3a8a", "#00b4d8", "#312e81"] }, { q: "¿Qué obstáculos o variables del entorno limitan la cultura de ahorro con respecto a este sueldo adicional extraordinario?", type: "pie", labels: ["Conserva por Plan de Ahorro", "Incapacidad por Entorno Caro", "Extensión Real Multi-Mes"], data: { masc: [60, 290, 52], fem: [90, 424, 88] }, colors: ["#1e3a8a", "#00b4d8", "#475569"] }, { q: "I¿Qué proporción de los encuestados logra extender el beneficio de este dinero durante varios meses?", type: "line", labels: ["Conserva por Plan de Ahorro", "Incapacidad por Entorno Caro", "Extensión Real Multi-Mes"], data: { masc: [60, 290, 52], fem: [90, 424, 88] }, colors: ["#00b4d8"] } ] },
+                3: { title: "Tópico 3.3: Nivel de compromiso previo del sueldo (Endeudamiento)", seg: "age2", tables: { young: `<table><thead><tr><th>Uso del Capital</th><th class="text-right">Pob. Joven</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Comprometido antes de Recibir</td><td class="text-right">390</td><td class="text-right">640</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Alivio de Deudas Pasadas</td><td class="text-right">110</td><td class="text-right">244</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Capital de Consumo Nuevo</td><td class="text-right">80</td><td class="text-right">120</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">580</td><td class="text-right">1004</td></tr></tbody></table>`, adult: `<table><thead><tr><th>Uso del Capital</th><th class="text-right">Pob. Prof.</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Comprometido antes de Recibir</td><td class="text-right">250</td><td class="text-right">640</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Alivio de Deudas Pasadas</td><td class="text-right">134</td><td class="text-right">244</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Capital de Consumo Nuevo</td><td class="text-right">40</td><td class="text-right">120</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">424</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Qué porcentaje de los trabajadores hondureños ya tiene comprometido o destinado el dinero antes de recibirlo formalmente?", type: "bar", labels: ["Comprometido antes de Recibir", "Alivio de Deudas Pasadas", "Capital de Consumo Nuevo"], data: { young: [390, 110, 80], adult: [250, 134, 40] }, colors: ["#1e3a8a", "#4338ca", "#581c87"] }, { q: "¶¿Cuáles son los principales motivos de deuda (créditos comerciales, préstamos o servicios) que absorben este ingreso extraordinario?", type: "pie", labels: ["Comprometido antes de Recibir", "Alivio de Deudas Pasadas", "Capital de Consumo Nuevo"], data: { young: [390, 110, 80], adult: [250, 134, 40] }, colors: ["#00b4d8", "#4338ca", "#64748b"] }, { q: "¿Funciona el catorceavo mes principalmente como un mecanismo de alivio financiero para saldar deudas pasadas o como capital de consumo nuevo?", type: "line", labels: ["Comprometido antes de Recibir", "Alivio de Deudas Pasadas", "Capital de Consumo Nuevo"], data: { young: [390, 110, 80], adult: [250, 134, 40] }, colors: ["#00b4d8"] } ] },
+                4: { title: "Tópico 3.4: Destino real del gasto en el mercado de consumo local", seg: "gender", tables: { masc: `<table><thead><tr><th>Rubro Asignado</th><th class="text-right">Hombres</th><th class="text-right">Total</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Educación y Colegiaturas</td><td class="text-right">140</td><td class="text-right">380</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Alimentación y Deudas básicas</td><td class="text-right">212</td><td class="text-right">514</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Entretenimiento y Tecnología</td><td class="text-right">50</td><td class="text-right">110</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">402</td><td class="text-right">1004</td></tr></tbody></table>`, fem: `<table><thead><tr><th>Rubro Asignado</th><th class="text-right">Mujeres</th><th class="text-right">Total</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Educación y Colegiaturas</td><td class="text-right">240</td><td class="text-right">380</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Alimentación y Deudas básicas</td><td class="text-right">302</td><td class="text-right">514</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Entretenimiento y Tecnología</td><td class="text-right">60</td><td class="text-right">110</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">602</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Cuáles son los rubros prioritarios (educación, salud, alimentación o entretenimiento) en los que se invierte este ingreso extra?", type: "bar", labels: ["Educación y Colegiaturas", "Alimentación y Deudas básicas", "Entretenimiento y Tecnología"], data: { masc: [140, 212, 50], fem: [240, 302, 60] }, colors: ["#1e3a8a", "#00b4d8", "#312e81"] }, { q: "¿Cómo varía la asignación del gasto de este sueldo adicional cuando se comparan los grupos más jóvenes frente a las personas de mayor edad?", type: "pie", labels: ["Educación y Colegiaturas", "Alimentación y Deudas básicas", "Entretenimiento y Tecnología"], data: { masc: [140, 212, 50], fem: [240, 302, 60] }, colors: ["#1e3a8a", "#00b4d8", "#475569"] }, { q: "I¿Qué impacto real perciben las personas que tiene este dinero adicional en su estabilidad económica y en el mercado de su comunidad?", type: "line", labels: ["Educación y Colegiaturas", "Alimentación y Deudas básicas", "Entretenimiento y Tecnología"], data: { masc: [140, 212, 50], fem: [240, 302, 60] }, colors: ["#00b4d8"] } ] }
+            }
+        },
+        4: {
+            themeTitle: "TEMA 4 — VIDA Y PERCEPCIÓN DEL ESTUDIANTE HONDUREÑO",
+            topics: {
+                1: { title: "Tópico 4.1: Vulnerabilidad formativa homogénea y brecha del mercado laboral", seg: "gender", tables: { masc: `<table><thead><tr><th>Autoevaluación Formativa</th><th class="text-right">Hombres</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Insuficiente / Crítica</td><td class="text-right">260</td><td class="text-right">630</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Algo Preparado (Básico)</td><td class="text-right">112</td><td class="text-right">254</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Muy Preparado / Competitivo</td><td class="text-right">30</td><td class="text-right">120</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">402</td><td class="text-right">1004</td></tr></tbody></table>`, fem: `<table><thead><tr><th>Autoevaluación Formativa</th><th class="text-right">Mujeres</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Insuficiente / Crítica</td><td class="text-right">370</td><td class="text-right">630</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Algo Preparado (Básico)</td><td class="text-right">142</td><td class="text-right">254</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Muy Preparado / Competitivo</td><td class="text-right">90</td><td class="text-right">120</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total Segmento</td><td class="text-right">602</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Qué porcentaje de la muestra total de estudiantes y egresados evalúa de forma crítica su nivel de preparación profesional como insuficiente al egresar?", type: "bar", labels: ["Insuficiente / Crítica", "Algo Preparado (Básico)", "Muy Preparado / Competitivo"], data: { masc: [260, 112, 30], fem: [370, 142, 90] }, colors: ["#1e3a8a", "#00b4d8", "#312e81"] }, { q: "I¿Existe una discrepancia de opiniones o una percepción homogénea entre hombres y mujeres sobre los vacíos del sistema de educación superior ante el mundo laboral?", type: "pie", labels: ["Insuficiente / Crítica", "Algo Preparado (Básico)", "Muy Preparado / Competitivo"], data: { masc: [260, 112, 30], fem: [370, 142, 90] }, colors: ["#1e3a8a", "#00b4d8", "#475569"] }, { q: "¿Cuál es el comportamiento de las respuestas optimistas (\"Muy preparado\" o \"Algo preparado\") frente a los entornos profesionales competitivos en el país?", type: "line", labels: ["Insuficiente / Crítica", "Algo Preparado (Básico)", "Muy Preparado / Competitivo"], data: { masc: [260, 112, 30], fem: [370, 142, 90] }, colors: ["#00b4d8"] } ] },
+                2: { title: "Tópico 4.2: Redes sociales como distractores principales del rendimiento académico", seg: "age3", tables: { age1835: `<table><thead><tr><th>Nivel de Interferencia</th><th class="text-right">18-35 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Interferencia Crítica (Baja notas)</td><td class="text-right">260</td><td class="text-right">490</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Distracción Regular Breve</td><td class="text-right">140</td><td class="text-right">384</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Regulación / Estrategias Activas</td><td class="text-right">50</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">450</td><td class="text-right">1004</td></tr></tbody></table>`, age3654: `<table><thead><tr><th>Nivel de Interferencia</th><th class="text-right">36-54 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Interferencia Crítica (Baja notas)</td><td class="text-right">180</td><td class="text-right">490</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Distracción Regular Breve</td><td class="text-right">164</td><td class="text-right">384</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Regulación / Estrategias Activas</td><td class="text-right">36</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">380</td><td class="text-right">1004</td></tr></tbody></table>`, age5565: `<table><thead><tr><th>Nivel de Interferencia</th><th class="text-right">55-65 Años</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Interferencia Crítica (Baja notas)</td><td class="text-right">50</td><td class="text-right">490</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Distracción Regular Breve</td><td class="text-right">80</td><td class="text-right">384</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Regulación / Estrategias Activas</td><td class="text-right">44</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">174</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿De qué manera interfiere el tiempo prolongado de exposición al celular en el cumplimiento de tareas y el rendimiento académico?", type: "bar", labels: ["Interferencia Crítica (Baja notas)", "Distracción Regular Breve", "Regulación / Estrategias Activas"], data: { age1835: [260, 140, 50], age3654: [180, 164, 36], age5565: [50, 80, 44] }, colors: ["#1e3a8a", "#0284c7", "#10b981"] }, { q: "¶¿Cuáles son las plataformas o redes sociales específicas que compiten más directamente con las horas de estudio de los universitarios?", type: "pie", labels: ["Interferencia Crítica (Baja notas)", "Distracción Regular Breve", "Regulación / Estrategias Activas"], data: { age1835: [260, 140, 50], age3654: [180, 164, 36], age5565: [50, 80, 44] }, colors: ["#1e3a8a", "#0284c7", "#64748b"] }, { q: "I¿Qué estrategias implementan los estudiantes para regular la distracción tecnológica durante sus periodos de evaluaciones de la universidad?", type: "line", labels: ["Interferencia Crítica (Baja notas)", "Distracción Regular Breve", "Regulación / Estrategias Activas"], data: { age1835: [260, 140, 50], age3654: [180, 164, 36], age5565: [50, 80, 44] }, colors: ["#10b981"] } ] },
+                3: { title: "Tópico 4.3: Motivaciones internas y factores de deserción del sistema educativo", seg: "age2", tables: { young: `<table><thead><tr><th>Riesgo Abandono</th><th class="text-right">Pob. Joven</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Factor Económico Familiar</td><td class="text-right">310</td><td class="text-right">540</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Falta de Motivación / Oportunidades</td><td class="text-right">210</td><td class="text-right">334</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Motores de Superación Personal</td><td class="text-right">60</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">580</td><td class="text-right">1004</td></tr></tbody></table>`, adult: `<table><thead><tr><th>Riesgo Abandono</th><th class="text-right">Pob. Prof.</th><th class="text-right">Global</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Factor Económico Familiar</td><td class="text-right">230</td><td class="text-right">540</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Falta de Motivación / Oportunidades</td><td class="text-right">124</td><td class="text-right">334</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Motores de Superación Personal</td><td class="text-right">70</td><td class="text-right">130</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">424</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¶¿Cuáles son los principales motores o aspiraciones personales que impulsan a los jóvenes hondureños a concluir una carrera universitaria?", type: "bar", labels: ["Factor Económico Familiar", "Falta de Motivación / Oportunidades", "Motores de Superación Personal"], data: { young: [310, 210, 60], adult: [230, 124, 70] }, colors: ["#1e3a8a", "#4338ca", "#581c87"] }, { q: "I¿Qué factores del entorno nacional representan los mayores riesgos para el abandono o interrupción de los estudios superiores?", type: "pie", labels: ["Factor Económico Familiar", "Falta de Motivación / Oportunidades", "Motores de Superación Personal"], data: { young: [310, 210, 60], adult: [230, 124, 70] }, colors: ["#00b4d8", "#4338ca", "#64748b"] }, { q: "¿De qué manera influye la situación financiera del entorno familiar en las decisiones de continuidad académica de los estudiantes?", type: "line", labels: ["Factor Económico Familiar", "Falta de Motivación / Oportunidades", "Motores de Superación Personal"], data: { young: [310, 210, 60], adult: [230, 124, 70] }, colors: ["#00b4d8"] } ] },
+                4: { title: "Tópico 4.4: Niveles de optimismo y expectativas económicas de los futuros profesionales", seg: "gender", tables: { masc: `<table><thead><tr><th>Expectativa Profesional</th><th class="text-right">Hombres</th><th class="text-right">Total</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Confianza en Empleo Formal Local</td><td class="text-right">50</td><td class="text-right">140</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Emprender Negocio Propio</td><td class="text-right">112</td><td class="text-right">254</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Expectativa de Migración Laboral</td><td class="text-right">240</td><td class="text-right">610</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">402</td><td class="text-right">1004</td></tr></tbody></table>`, fem: `<table><thead><tr><th>Expectativa Profesional</th><th class="text-right">Mujeres</th><th class="text-right">Total</th></tr></thead><tbody><tr onclick="filterChartsByTableRow(0)"><td>Confianza en Empleo Formal Local</td><td class="text-right">90</td><td class="text-right">140</td></tr><tr onclick="filterChartsByTableRow(1)"><td>Emprender Negocio Propio</td><td class="text-right">142</td><td class="text-right">254</td></tr><tr onclick="filterChartsByTableRow(2)"><td>Expectativa de Migración Laboral</td><td class="text-right">370</td><td class="text-right">610</td></tr><tr class="total-row" onclick="filterChartsByTableRow(-1)"><td>Total</td><td class="text-right">602</td><td class="text-right">1004</td></tr></tbody></table>` }, questions: [ { q: "¿Qué grado de confianza o certidumbre tienen los estudiantes respecto a la posibilidad de conseguir un empleo formal acorde a su perfil al graduarse?", type: "bar", labels: ["Confianza en Empleo Formal Local", "Emprender Negocio Propio", "Expectativa de Migración Laboral"], data: { masc: [50, 112, 240], fem: [90, 142, 370] }, colors: ["#1e3a8a", "#00b4d8", "#312e81"] }, { q: "I¿Cómo perciben los futuros egresados las condiciones económicas del país para el desarrollo de emprendimientos o nuevas empresas?", type: "pie", labels: ["Confianza en Empleo Formal Local", "Emprender Negocio Propio", "Expectativa de Migración Laboral"], data: { masc: [50, 112, 240], fem: [90, 142, 370] }, colors: ["#1e3a8a", "#00b4d8", "#475569"] }, { q: "¿Constituye la migración laboral internacional una expectativa común ante la falta percibida de oportunidades locales?", type: "line", labels: ["Confianza en Empleo Formal Local", "Emprender Negocio Propio", "Expectativa de Migración Laboral"], data: { masc: [50, 112, 240], fem: [90, 142, 370] }, colors: ["#00b4d8"] } ] }
+            }
+        }
+    };
+
+    function switchView(viewId) {
+        document.getElementById('view-cover').style.display = 'none';
+        document.getElementById('main-dashboard').style.display = 'none';
+        
+        document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+        
+        if (viewId === 'view-cover') {
+            document.getElementById('view-cover').style.display = 'flex';
+        } else {
+            document.getElementById('main-dashboard').style.display = 'flex';
+            const targetView = document.getElementById(viewId);
+            if (targetView) {
+                targetView.style.display = 'flex';
+                targetView.classList.add('active');
+            }
+        }
+    }
+
+    function openTopicsMenu(themeNum) {
+        globalSelectedTheme = themeNum;
+        const themeData = databaseMaster[themeNum];
+        document.getElementById('lbl-selected-theme-title').innerText = themeData.themeTitle;
+        
+        const gridBox = document.getElementById('container-topics-grid-box');
+        gridBox.innerHTML = '';
+
+        Object.keys(themeData.topics).forEach(topKey => {
+            const topic = themeData.topics[topKey];
+            const iconClass = topicIcons[themeNum][topKey] || "fa-solid fa-chart-simple";
+            
+            const card = document.createElement('div');
+            card.className = 'formal-topic-card';
+            card.onclick = () => openAnalyticsDashboard(themeNum, topKey);
+            card.innerHTML = `
+                <i class="${iconClass}"></i>
+                <h4>TÓPICO ${themeNum}.${topKey}</h4>
+                <p>${topic.title.split(': ')[1] || topic.title}</p>
+            `;
+            gridBox.appendChild(card);
+        });
+
+        switchView('view-topics-menu');
+    }
+
+    function openAnalyticsDashboard(themeNum, topicKey) {
+        currentTopicData = databaseMaster[themeNum].topics[topicKey];
+        document.getElementById('txt-header-topico-title').innerText = currentTopicData.title;
+        document.getElementById('lbl-active-topico-header').innerText = `Métricas — Tópico ${themeNum}.${topicKey}`;
+        
+        document.getElementById('btn-back-to-topics').onclick = () => openTopicsMenu(themeNum);
+
+        const selTarget = document.getElementById('box-selectors-target');
+        selTarget.innerHTML = '';
+        const segmentGroup = segmentDefinitions[currentTopicData.seg];
+
+        segmentGroup.forEach((seg, index) => {
+            const btn = document.createElement('div');
+            btn.className = `selector-icon-btn ${index === 0 ? 'active' : ''}`;
+            btn.innerHTML = `<i class="${seg.icon}"></i>${seg.label.split(' ')[1] || seg.label}`;
+            btn.onclick = () => {
+                document.querySelectorAll('.selector-icon-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                loadSegmentTableAndCharts(seg.id, seg.themeStyle);
+            };
+            selTarget.appendChild(btn);
+        });
+
+        document.getElementById('lbl-q1-statement').innerText = `P1: ${currentTopicData.questions[0].q}`;
+        document.getElementById('lbl-q2-statement').innerText = `P2: ${currentTopicData.questions[1].q}`;
+        document.getElementById('lbl-q3-statement').innerText = `P3: ${currentTopicData.questions[2].q}`;
+
+        loadSegmentTableAndCharts(segmentGroup[0].id, segmentGroup[0].themeStyle);
+
+        switchView('view-dashboard-analytics');
+    }
+
+    function loadSegmentTableAndCharts(segId, styles) {
+        currentSelectedSegmentId = segId;
+        currentActiveStyles = styles;
+        
+        const container = document.getElementById('box-table-dropdown-container');
+        container.innerHTML = currentTopicData.tables[segId] || '<p>No hay datos disponibles</p>';
+        
+        const root = document.documentElement;
+        root.style.setProperty('--table-bg', styles.bg);
+        root.style.setProperty('--table-th', styles.th);
+        root.style.setProperty('--table-border', styles.border);
+        root.style.setProperty('--table-text', styles.text);
+
+        Object.keys(activeCharts).forEach(key => {
+            if(activeCharts[key]) activeCharts[key].destroy();
+        });
+
+        activeCharts['q1'] = renderSingleChart('canvas-fixed-bar-q1', currentTopicData.questions[0], segId, styles.border);
+        activeCharts['q2'] = renderSingleChart('canvas-fixed-pie-q2', currentTopicData.questions[1], segId, styles.border);
+        activeCharts['q3'] = renderSingleChart('canvas-fixed-line-q3', currentTopicData.questions[2], segId, styles.border);
+    }
+
+    function filterChartsByTableRow(rowIndex) {
+        // Remover cualquier estilo de fila previamente seleccionada
+        const rows = document.querySelectorAll("#box-table-dropdown-container tbody tr");
+        rows.forEach((r, idx) => {
+            if (!r.classList.contains('total-row')) {
+                r.style.backgroundColor = "transparent";
+            }
+        });
+
+        // Aplicar filtros basados en la fila seleccionada
+        Object.keys(activeCharts).forEach(key => {
+            const chart = activeCharts[key];
+            if (!chart) return;
+
+            let questionObject;
+            if (key === 'q1') questionObject = currentTopicData.questions[0];
+            if (key === 'q2') questionObject = currentTopicData.questions[1];
+            if (key === 'q3') questionObject = currentTopicData.questions[2];
+
+            const baseData = [...questionObject.data[currentSelectedSegmentId]];
+            const baseLabels = [...questionObject.labels];
+            let baseColors = [...questionObject.colors];
+
+            if (questionObject.type === 'bar' || questionObject.type === 'pie') {
+                baseColors[0] = currentActiveStyles.border;
+            }
+
+            if (rowIndex === -1) {
+                // Resetear gráfico si se hace clic en la fila de totales
+                chart.data.labels = baseLabels;
+                chart.data.datasets[0].data = baseData;
+                if (chart.config.type !== 'line') {
+                    chart.data.datasets[0].backgroundColor = baseColors;
+                } else {
+                    chart.data.datasets[0].borderColor = currentActiveStyles.border;
+                }
+            } else {
+                // Resaltar la fila de la tabla seleccionada visualmente
+                if (rows[rowIndex] && !rows[rowIndex].classList.contains('total-row')) {
+                    rows[rowIndex].style.backgroundColor = "rgba(56, 189, 248, 0.25)";
+                }
+
+                if (chart.config.type === 'pie') {
+                    // En gráficos de pastel ocultamos los otros sectores poniendo sus datos a cero 
+                    // para preservar la leyenda y el mapeo de color correcto
+                    const filterPieData = baseData.map((val, idx) => idx === rowIndex ? val : 0);
+                    chart.data.datasets[0].data = filterPieData;
+                } else {
+                    // En barras y líneas mostramos únicamente la categoría correspondiente
+                    chart.data.labels = [baseLabels[rowIndex]];
+                    chart.data.datasets[0].data = [baseData[rowIndex]];
+                    if (chart.config.type === 'bar') {
+                        chart.data.datasets[0].backgroundColor = [baseColors[rowIndex] || currentActiveStyles.border];
+                    }
+                }
+            }
+            chart.update();
+        });
+    }
+
+    function renderSingleChart(canvasId, questionObject, segId, activeColor) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        const specificData = questionObject.data[segId] || [];
+        
+        let chartColors = [...questionObject.colors];
+        if (questionObject.type === 'bar' && chartColors.length > 0) {
+            chartColors[0] = activeColor;
+        } else if (questionObject.type === 'pie' && chartColors.length > 0) {
+            chartColors[0] = activeColor;
+        }
+
+        return new Chart(ctx, {
+            type: questionObject.type,
+            data: {
+                labels: questionObject.labels,
+                datasets: [{ 
+                    data: [...specificData], 
+                    backgroundColor: chartColors,
+                    borderColor: questionObject.type === 'line' ? activeColor : 'transparent',
+                    borderWidth: questionObject.type === 'line' ? 3 : 0,
+                    fill: false,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: questionObject.type === 'pie', position: 'right', labels: { color: '#ffffff', boxWidth: 6, font: { size: 8 } } },
+                    datalabels: {
+                        display: true,
+                        color: '#ffffff', font: { weight: 'bold', size: 9 },
+                        anchor: 'center',
+                        align: 'center',
+                        offset: 0,
+                        formatter: (val, ctx) => {
+                            if (val === 0) return ''; // No renderizar etiquetas si el valor fue filtrado a 0
+                            
+                            // Cálculo exacto basado en la suma total estática del segmento cargado originalmente
+                            let currentSegmentData = currentTopicData.questions.find(q => q.type === ctx.chart.config.type).data[currentSelectedSegmentId];
+                            let segmentTotal = currentSegmentData.reduce((a, b) => a + b, 0);
+                            
+                            if (segmentTotal === 0) return '0%';
+                            return ((val / segmentTotal) * 100).toFixed(0) + '%';
+                        }
+                    }
+                },
+                scales: questionObject.type !== 'pie' ? {
+                    y: { beginAtZero: true, ticks: { color: '#9ca3af', font: { size: 7 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                    x: { ticks: { color: '#9ca3af', font: { size: 7 } }, grid: { display: false } }
+                } : {}
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
